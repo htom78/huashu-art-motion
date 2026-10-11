@@ -10,7 +10,7 @@
     "en": "who places the order"
   },
   "cues": [
-    { "at": 0.0, "kind": "swarm", "text": "情绪脑", "sub": "SYSTEM 1" },
+    { "at": 0.0, "kind": "swarm", "text": "情绪脑", "sub": "SYSTEM ONE" },
     { "at": 2.0, "kind": "band" },
     { "at": 3.4, "kind": "candle", "dur": 2.6 },
     { "at": 4.4, "kind": "title" },

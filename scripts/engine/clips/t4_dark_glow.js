@@ -76,8 +76,9 @@ return {
     const { W, H, u, box, data: d } = ctx, P = palette(ctx.theme.palette), R = rng(+d.seed || 20261010);
     const gauss = () => { let a = 0; while (!a) a = R(); return Math.sqrt(-2 * Math.log(a)) * Math.cos(2 * Math.PI * R()); };
     if (d.upDown === 'cn') [P.up, P.down] = [P.down, P.up];
-    const LY = ctx.portrait ? { x0: .1, x1: .9, band: .3, title: .2, en: .225, c0: .55, c1: .69, cl: [.27, .45] }
-                            : { x0: .198, x1: .802, band: .235, title: .145, en: .178, c0: .55, c1: .74, cl: [.208, .56] };
+    const LY = ctx.portrait ? { x0: .1, x1: .9, band: .215, title: .13, en: .152, c0: .40, c1: .54, cl: [.27, .36], focus: .35 }
+                            : { x0: .198, x1: .802, band: .255, title: .145, en: .178, c0: .55, c1: .74, cl: [.208, .56], focus: .445 };
+    const fs = ctx.portrait ? 1.25 : 1;   // 竖屏在手机上看：英文小字放大两成半
     const X = k => box.x + box.w * k, Y = k => box.y + box.h * k;
     // ---- 数据：给了 series 就用（价格单位，映射到图区），没给就按种子生成一段示意走势 ----
     const qd = ctx.of('candle', 'line')[0];
@@ -117,24 +118,37 @@ return {
       const col = r < .14 ? P.swarm3 : r < .62 ? P.swarm1 : P.swarm2;
       PT.push({ bx: lerp(bx0, bx1, v) + gauss() * 6 * u, by: bandY + gauss() * 24 * u * taper, ca: R() * 7, cr: (Math.abs(gauss()) * 80 + 6) * u,
         cw: (.25 + R() * .5) * (R() < .5 ? -1 : 1), d: v * .55 + R() * .35, col, s: (col === P.swarm3 ? 5 + R() * 5 : 2.5 + R() * 4.5) * u,
-        bright: col === P.swarm3 && R() < .3, f1: .4 + R() * .9, f2: .5 + R() * 1.2, ph: R() * 7, tw: 1 + R() * 3 });
+        bright: col === P.swarm3 && R() < .3, f1: .4 + R() * .9, f2: .5 + R() * 1.2, ph: R() * 7, tw: 1 + R() * 3, fl: 2.5 + R() * 3.5 });
     }
     const DUST = Array.from({ length: 70 }, () => ({ x: R() * W, y: R() * H, v: (4 + R() * 10) * u, a: .1 + R() * .25, r: (1.5 + R() * 2.5) * u }));
+    // ---- 标注位置：依次试「正下方 → 右侧 → 左侧 → 左上 → 右上」，取第一个不压 K 线和丝线、不压已放的标注、不进字幕区的位置 ----
+    const lim = box.y + box.h * (ctx.portrait && !ctx.safe.bottom ? .7 : 1) - 24 * u;   // 竖屏没给 safe.bottom：下方三成留给口播字幕
+    const hits = r => C.some(d => d.x > r[0] - 6 * u && d.x < r[1] + 6 * u && d.lo > r[2] - 8 * u && d.hi < r[3] + 8 * u)
+      || TH.some(T => [.5, .6, .7, .8, .9, 1].some(v => { const [x, y] = qpt(T, v); return x > r[0] - 8 * u && x < r[1] + 8 * u && y > r[2] && y < r[3]; }));
+    const overlap = (a, b) => a[0] < b[1] + 24 * u && b[0] < a[1] + 24 * u && a[2] < b[3] + 12 * u && b[2] < a[3] + 12 * u;
+    const taken = [];
     const MK = ctx.of('mark').map(q => {
       const i = q.data && q.data.index, tone = (q.data && q.data.tone) || 'accent';
       if (!C[i]) throw new Error(`t4_dark_glow：mark 的 data.index ${i} 超出 series（共 ${N} 根）`);
       const m = document.createElement('canvas').getContext('2d'); m.letterSpacing = 3 * u + 'px';
       m.font = `${40 * u}px ${SERIF}`; let w = m.measureText(q.text || '').width;
-      m.letterSpacing = 5 * u + 'px'; m.font = `${17 * u}px ${LATIN}`; w = Math.max(w, m.measureText(q.sub || '').width);
-      const lx = clamp(C[i].x, box.x + w / 2 + 20 * u, box.x + box.w - w / 2 - 20 * u);
-      const under = Math.max(C[i].c, ...C.filter(d => Math.abs(d.x - lx) < w / 2 + 12 * u).map(d => d.lo));   // 字下面那几根 K 线的最低点
-      const ly = Math.min(Math.max(C[i].c + 96 * u, under + 54 * u), box.y + box.h - 52 * u);   // 标注放落点正下方，压到这些 K 线下面
-      return { q, b: C[i], lx, ly, w, col: tone === 'accent' || tone === 'hot' ? P[tone] : color(tone, 'mark.tone') };
+      m.letterSpacing = 5 * u + 'px'; m.font = `${20 * u * fs}px ${LATIN}`; w = Math.max(w, m.measureText(q.sub || '').width);
+      const b = C[i], rect = (al, ax, ly) => { const x0 = al === 'left' ? ax : al === 'right' ? ax - w : ax - w / 2; return [x0, x0 + w, ly - 38 * u, ly + 32 * u * fs + 6 * u]; };
+      const ok = r => r[0] > box.x + 16 * u && r[1] < box.x + box.w - 16 * u && r[3] < lim && !hits(r) && !taken.some(o => overlap(o, r));
+      let pick = [['center', b.x, b.c + 96 * u], ['left', b.x + 64 * u, b.c + 44 * u], ['right', b.x - 64 * u, b.c + 44 * u],
+                  ['right', b.x - 48 * u, b.c - 54 * u], ['left', b.x + 48 * u, b.c - 54 * u]]
+        .map(([al, ax, ly]) => ({ al, ax, ly, r: rect(al, ax, ly) })).find(c => ok(c.r));
+      if (!pick) {   // 三处都不行：退回正下方，压到下面那几根 K 线以下，再让开已放的标注
+        const ax = clamp(b.x, box.x + w / 2 + 20 * u, box.x + box.w - w / 2 - 20 * u);
+        let ly = Math.max(b.c + 96 * u, Math.max(b.c, ...C.filter(d => Math.abs(d.x - ax) < w / 2 + 12 * u).map(d => d.lo)) + 54 * u);
+        while (taken.some(o => overlap(o, rect('center', ax, ly)))) ly += 84 * u;
+        ly = Math.min(ly, lim - 32 * u * fs - 6 * u);
+        pick = { al: 'center', ax, ly, r: rect('center', ax, ly), lead: true };   // 离落点远：画一条引线连回去
+      }
+      taken.push(pick.r);
+      return { q, b, ax: pick.ax, ly: pick.ly, al: pick.al, lead: !!pick.lead, col: tone === 'accent' || tone === 'hot' ? P[tone] : color(tone, 'mark.tone') };
     });
-    MK.forEach((m, k) => {   // 两个标注横向挨得太近（竖屏常见）：后一个往下错开一行，不并排挤在一起
-      for (const o of MK.slice(0, k)) if (Math.abs(m.lx - o.lx) < (m.w + o.w) / 2 + 40 * u && Math.abs(m.ly - o.ly) < 72 * u) m.ly = o.ly + 84 * u;
-    });
-    L = { P, LY, X, Y, C, N, TH, MK, zone, tintAt, PT, DUST, cl: [X(LY.cl[0]), Y(LY.cl[1])], bandY, focus: [X(.5), Y(.445)],
+    L = { P, LY, X, Y, C, N, TH, MK, zone, tintAt, PT, DUST, cl: [X(LY.cl[0]), Y(LY.cl[1])], bandY, focus: [X(.5), Y(LY.focus)], fs,
       badge: d.badge ?? (demo && qd ? '示意数据' : null) };
     // ---- 画布：场景层＋两级光晕；底（近黑＋中心光＋暗角）和颗粒只做一次 ----
     SP = new Map(); S = mk(W, H); s = S.getContext('2d'); H2 = mk(W >> 1, H >> 1); h2 = H2.getContext('2d'); H4 = mk(W >> 2, H >> 2); h4 = H4.getContext('2d');
@@ -169,11 +183,12 @@ return {
     c.drawImage(H2, 0, 0, W, H); c.drawImage(H4, 0, 0, W, H); c.drawImage(S, 0, 0);
     if (!ctx.alpha) {   // 胶片颗粒，24fps 换一次位置
       GRAIN = GRAIN || c.createPattern(NZ, 'repeat');
-      const fi = Math.round(t * 24); c.globalAlpha = .04; c.fillStyle = GRAIN;
+      const fi = Math.round(t * ctx.FPS); c.globalAlpha = .04; c.fillStyle = GRAIN;
       c.save(); c.translate((fi * 73) % 256, (fi * 151) % 256); c.fillRect(-256, -256, W + 256, H + 256); c.restore();
     }
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
-    if (L.badge) text(c, L.badge, ctx.box.x + ctx.box.w - 40 * u, ctx.box.y + ctx.box.h - 36 * u, `${22 * u}px ${SERIF}`, rgba(P.sub, .55), fo * MO.smooth(t / .6), { align: 'right', spacing: 2 * u });
+    if (L.badge) text(c, L.badge, ctx.box.x + ctx.box.w - 40 * u, ctx.portrait ? ctx.box.y + 80 * u : ctx.box.y + ctx.box.h - 36 * u,   // 竖屏右下角常被平台按钮压住，放右上
+      `${22 * u * L.fs}px ${SERIF}`, rgba(P.sub, .7), fo * MO.smooth(t / .6), { align: 'right', spacing: 2 * u });
   },
 };
 
@@ -186,7 +201,7 @@ function drawSeries(c, t, ctx) {
     for (let i = 0; i < N; i++) {
       const k = clamp((h - i) / 1.6); if (k <= 0) break;
       const d = C[i], up = d.c < d.o, col = up ? (zone && i >= zone[0] && i <= zone[1] ? mixc(P.up, P.down, tint) : P.up) : P.down;
-      const cy = lerp(d.o, d.c, MO.expoOut(k)), top = Math.min(d.o, cy), bh = Math.max(2 * u, Math.abs(cy - d.o)), bw = clamp((C[1] ? C[1].x - C[0].x : 20) * .4, 3 * u, 14 * u);
+      const cy = lerp(d.o, d.c, MO.expoOut(k)), top = Math.min(d.o, cy), bh = Math.max(2 * u, Math.abs(cy - d.o)), bw = clamp((C[1] ? C[1].x - C[0].x : 20) * (ctx.portrait ? .5 : .4), 3 * u, 14 * u);
       c.globalAlpha = .9 * k; c.strokeStyle = rgba(col, 1); c.lineWidth = 1.6 * u;
       c.beginPath(); c.moveTo(d.x, lerp(cy, d.hi, k)); c.lineTo(d.x, lerp(cy, d.lo, k)); c.stroke();
       c.fillStyle = rgba(col, .28); c.fillRect(d.x - bw / 2, top, bw, bh); c.strokeRect(d.x - bw / 2, top, bw, bh);
@@ -220,7 +235,7 @@ function drawThreads(c, t, ctx) {
       c.stroke();
     }
     for (let j = 0; j < 23; j++) { const v = (j / 22 + t * .18) % 1; if (v <= p) { const [x, y] = qpt(T, v); dot(c, P.bead, x, y, 5 * u, .9); } }   // 珠子沿线往下流
-    const e = ctx.lt(t, T.at) - .7;   // smooth 在 0.7s 时已走完 99.8%：从这里起闪，不晚两帧
+    const e = ctx.lt(t, T.at) - .62;   // 0.62s 时线头离落点只剩约 4%，被线头的光点盖住，看上去已经碰到：从这里起闪
     if (e < 0) { const [x, y] = qpt(T, p); dot(c, [235, 240, 255], x, y, 14 * u, 1); continue; }
     const g = MO.expoOut(e / .12);   // 落点：0.12s 长到全尺寸再回落 + 一圈波纹，之后常亮
     dot(c, P.thread, T.bx, T.by, (46 + 30 * Math.exp(-e * 4)) * u * g, (.55 + .6 * Math.exp(-e * 3)) * g); dot(c, [235, 240, 255], T.bx, T.by, 7 * u, .9);
@@ -247,7 +262,7 @@ function drawSwarm(c, t, ctx) {
     if (a <= 0) continue;
     if (k > 0 && k < 1) { const [px, py] = pos(p, t - .1); c.globalAlpha = .3 * Math.min(1, a); c.strokeStyle = rgba(p.col, 1); c.lineWidth = p.s * .25; c.beginPath(); c.moveTo(px, py); c.lineTo(x, y); c.stroke(); }
     dot(c, p.col, x, y, p.s, a);
-    if (p.bright) flare(c, x, y, p.s * 4, a * .45, [255, 225, 190]);
+    if (p.bright) flare(c, x, y, p.s * p.fl, a * .45, [255, 225, 190]);
   }
 }
 
@@ -257,23 +272,25 @@ function drawText(c, t, ctx) {
   if (qs && (qs.text || qs.sub)) {   // 团的标签：团被扫走前退场
     const qb = ctx.of('band')[0], la = MO.smooth((ctx.lt(t, qs.at) - .3) / .6) * (qb ? 1 - MO.smooth((t - qb.at + .2) / .4) : 1);
     text(c, qs.text, L.cl[0], L.cl[1] + 158 * u, `${36 * u}px ${SERIF}`, rgba(P.ink, 1), la);
-    text(c, qs.sub, L.cl[0], L.cl[1] + 192 * u, `${17 * u}px ${LATIN}`, rgba(P.sub, .9), la * .9, { spacing: 6 * u });
+    text(c, qs.sub, L.cl[0], L.cl[1] + 194 * u, `${20 * u * L.fs}px ${LATIN}`, rgba(P.sub, .9), la * .9, { spacing: 6 * u });
   }
   const qt = ctx.of('title')[0];
   if (qt) {   // 标题从模糊里浮出
     const p = MO.smooth(ctx.lt(t, qt.at) / .9), dy = (1 - p) * 12 * u;
     text(c, qt.text ?? d.title, X(.5), Y(LY.title) + dy, `${46 * u}px ${SERIF}`, rgba(P.ink, 1), p, { blur: (1 - p) * 10 * u });
-    text(c, (qt.sub ?? d.en ?? '').toUpperCase(), X(.5), Y(LY.en) + dy, `${18 * u}px ${LATIN}`, rgba(P.sub, .9), p * .9, { blur: (1 - p) * 10 * u, spacing: 9 * u });
+    text(c, (qt.sub ?? d.en ?? '').toUpperCase(), X(.5), Y(LY.en) + dy, `${22 * u * L.fs}px ${LATIN}`, rgba(P.sub, .9), p * .9, { blur: (1 - p) * 10 * u, spacing: 9 * u });
   }
-  for (const { q, b, lx, ly, col } of L.MK) {
+  for (const { q, b, ax, ly, al, lead, col } of L.MK) {
     const e = ctx.lt(t, q.at); if (e <= 0) continue;
     const k = MO.expoOut(e / .5), pulse = 1 + .12 * Math.sin(e * 5), [x, y] = [b.x, b.c];
     dot(c, col, x, y, 34 * pulse * k * u, .95); dot(c, [235, 240, 255], x, y, 9 * k * u, 1); flare(c, x, y, 70 * k * u, .7, col);
     const ph = (e % 1.4) / 1.4; c.globalAlpha = (1 - ph) * .5 * k; c.strokeStyle = rgba(col, 1); c.lineWidth = 1.2 * u;
     c.beginPath(); c.arc(x, y, (10 + 40 * MO.expoOut(ph)) * u, 0, 7); c.stroke();   // 波纹最大 50px：不穿过下面的字
     const ta = MO.smooth((e - .15) / .4);
-    text(c, q.text, lx, ly, `${40 * u}px ${SERIF}`, rgba(col, 1), ta, { spacing: 3 * u });
-    text(c, q.sub, lx, ly + 30 * u, `${17 * u}px ${LATIN}`, rgba(col, .9), ta * .9, { spacing: 5 * u });
+    if (lead) { const y0 = b.c + 16 * u, y1 = ly - 46 * u, k2 = MO.smooth((e - .1) / .4);   // 引线：从落点往下画到文字上沿
+      c.globalAlpha = .6 * k2; c.strokeStyle = rgba(col, 1); c.lineWidth = 1.2 * u; c.beginPath(); c.moveTo(b.x, y0); c.lineTo(lerp(b.x, ax, k2), lerp(y0, y1, k2)); c.stroke(); }
+    text(c, q.text, ax, ly, `${40 * u}px ${SERIF}`, rgba(col, 1), ta, { spacing: 3 * u, align: al });
+    text(c, q.sub, ax, ly + 32 * u * L.fs, `${20 * u * L.fs}px ${LATIN}`, rgba(col, .9), ta * .9, { spacing: 5 * u, align: al });
   }
 }
 })();
