@@ -53,4 +53,6 @@ window.FONT_FACES = [
   // 思源黑/宋（可变字重）：只含 3b1b/发布会/财经三支示范片用到的字（源文件未随仓库附带，换题目缺字时改用 PuHui-*，或下 Google Fonts 的 NotoSansSC[wght].ttf 重做子集）
   {family:'NotoSansSC', url:'lib/fonts/NotoSansSC-sub.woff', desc:{weight:'100 900'}},
   {family:'NotoSerifSC', url:'lib/fonts/NotoSerifSC-sub.woff', desc:{weight:'200 900'}},
+  // 暗场光绘（t4）的宋体标题：思源宋体 Noto Serif SC 700 的 GB2312 子集（Google Fonts NotoSerifSC[wght].ttf 实例化 wght=700 后 font_subset.py --gb2312）
+  {family:'NotoSerifSC-700', url:'lib/fonts/NotoSerifSC-700.woff'},
 ];

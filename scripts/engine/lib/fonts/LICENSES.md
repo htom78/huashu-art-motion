@@ -35,6 +35,7 @@ The fonts in this directory are NOT covered by the repository's MIT license. Eac
 | `NotoSansSC-500/700/800/900.woff` | 思源黑体 Noto Sans SC（按字重实例化后的 GB2312 子集；代码里 family 名叫 `PuHui-*`） | © 2014-2021 Adobe，Reserved Font Name "Source" | Google Fonts |
 | `NotoSansSC-sub.woff` | 思源黑体 Noto Sans SC（按用字子集） | © 2014-2021 Adobe，Reserved Font Name "Source" | Google Fonts |
 | `NotoSerifSC-sub.woff` | 思源宋体 Noto Serif SC（按用字子集） | © 2017-2024 Adobe | Google Fonts |
+| `NotoSerifSC-700.woff` | 思源宋体 Noto Serif SC（按字重 700 实例化后的 GB2312 子集） | © 2017-2024 Adobe | Google Fonts |
 | `NotoSerifJP-600.woff` | Noto Serif JP | © 2017-2024 Adobe | Google Fonts |
 
 带 Reserved Font Name 的字体，改动过的版本不能沿用保留名。本目录里带保留名的这几款（拉丁字体）内部字体名都是原名（按 Google Fonts 发行的 woff 使用）；如果你要对它们抽子集或改字形，请同时改掉 family 名。

@@ -6,7 +6,7 @@
 
 让你的coding agent，把艺术风格写成会动的画。
 
-35种艺术风格 · 9种解说语法 · 8种参数化片段 · 口播整片参考代码
+35种艺术风格 · 10种解说语法 · 9种参数化片段 · 口播整片参考代码
 
 ```sh
 npx skills add alchaincyf/huashu-art-motion
@@ -58,7 +58,7 @@ npx skills add alchaincyf/huashu-art-motion
 
 <img src="assets/长卷穿越_总览.jpg" alt="长卷穿越片示范：埃及壁画、莫奈日本桥、8-bit 像素" width="100%" />
 
-8种解说语法各有一支可运行示范片（下图每镜取一帧）。此外还有第9种「讲解员式财经科普」，提供语法卡和需自备角色的整片代码快照。白板适合跟着口播画关系，Vox适合图形与信息拼贴：
+8种解说语法各有一支可运行示范片（下图每镜取一帧）。此外还有第9种「讲解员式财经科普」，提供语法卡和需自备角色的整片代码快照；第10种「暗场光绘」提供语法卡、参数化片段和 4 套可换配色（总览在表格最后一行）。白板适合跟着口播画关系，Vox适合图形与信息拼贴：
 
 | | |
 |---|---|
@@ -66,6 +66,7 @@ npx skills add alchaincyf/huashu-art-motion
 | <img src="assets/动画语法/y3_whiteboard_总览.jpg" alt="白板风格" /> 白板：笔尖揭开线稿 | <img src="assets/动画语法/t1_3b1b_总览.jpg" alt="3Blue1Brown 风格" /> 3Blue1Brown：一个对象形变成下一个 |
 | <img src="assets/动画语法/y4_storytime_总览.jpg" alt="storytime 风格" /> Storytime：反应特写、笑点停顿 | <img src="assets/动画语法/y5_kinetic_type_总览.jpg" alt="动态文字" /> 动态文字：主词砸进来 |
 | <img src="assets/动画语法/t2_keynote_ui_总览.jpg" alt="发布会风格" /> 发布会：光斑底、毛玻璃卡、大数字 | <img src="assets/动画语法/t3_finance_chart_总览.jpg" alt="财经图表" /> 财经图表：先轴、后数据、只标一件事 |
+| <img src="assets/动画语法/t4_dark_glow_总览.jpg" alt="暗场光绘" /> 暗场光绘：粒子、丝线、发光 K 线 | <img src="assets/动画语法/t4_dark_glow_配色.jpg" alt="暗场光绘配色" /> 暗场光绘的 4 套配色 |
 
 ---
 
@@ -91,7 +92,7 @@ npx skills add alchaincyf/huashu-art-motion
 |---|---|
 | 艺术风格配方卡（参数、母题动作、签名转场、当前短板） | 35张，`references/风格配方/` |
 | 对应的场景代码 | 35个，`scripts/engine/scenes/` |
-| 解说动画语法卡 | 9份；其中8种附示范片、参数化片段与示例spec |
+| 解说动画语法卡 | 10份；其中8种附示范片、参数化片段与示例spec，暗场光绘附参数化片段与示例spec |
 | 口播整片参考代码 | 混合风格、白板、Vox、讲解员；需自备部分素材，详见目录README |
 | 长卷穿越片示范（骨架＋3 段＋角色帧库） | 1 支，`scripts/engine/demos/long_scroll/` |
 | 转场 | 艺术风格签名转场与解说转场，包含淡入、硬切和纸面转场 |
