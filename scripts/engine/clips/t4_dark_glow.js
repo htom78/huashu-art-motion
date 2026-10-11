@@ -5,7 +5,7 @@
 // theme: { palette: 'ember'（默认，原片的粉橙＋青）| 'ice' | 'jade' | 'violet' | { base?: 预设名, 角色: '#hex' 或 [r,g,b], … } }
 //        角色：glow（底色中心光）· swarm1/swarm2/swarm3（粒子三色，占比约 5:3.5:1.5）· thread（丝线）· bead（丝线上流动的珠子）
 //              up / down（涨 / 跌）· accent / hot（两种标注色）· ink（标题）· sub（英文小字）
-// data:  { title?, en?（标题下的英文小字）, series?: [{o,h,l,c}]（K 线）或 [{value}]（只画线）, upDown?: 'cn'（红涨：交换 up/down 两色）,
+// data:  { title?, en?（标题下的英文小字）, series?: [{o,h,l,c}]（K 线）或 [{value}]（只画线）, upDown?: 'cn'（默认，红涨，和 t3 一致）| 'us'（交换 up/down 两色，青涨）,
 //          badge?（右下角标；不给 series 时自动生成示意数据并标「示意数据」）, seed? }
 // cues（at 秒）：swarm（粒子团出现，text/sub 是团的标签）· band（粒子从团飞成光带，约 1.9s 飞完）
 //         candle | line（数据从 at 开始逐根画出，dur 默认 2.6）· title（标题从模糊里浮出，text/sub 覆盖 data.title/en）
@@ -16,13 +16,13 @@ const { clamp, lerp } = U;
 const SERIF = '"NotoSerifSC-700"', LATIN = '"CormorantGaramond-500"';
 const PALETTES = {
   ember:  { glow: [28, 34, 74],  swarm1: [255, 160, 100], swarm2: [255, 92, 122],  swarm3: [255, 206, 120], thread: [255, 92, 122],  bead: [255, 160, 100],
-            up: [80, 205, 255],  down: [255, 92, 122],  accent: [255, 206, 120], hot: [255, 92, 122],  ink: [255, 243, 238], sub: [255, 170, 160] },
+            up: [255, 92, 122],  down: [80, 205, 255],  accent: [255, 206, 120], hot: [255, 92, 122],  ink: [255, 243, 238], sub: [255, 170, 160] },
   ice:    { glow: [14, 34, 66],  swarm1: [110, 200, 255], swarm2: [70, 120, 255],  swarm3: [225, 245, 255], thread: [110, 200, 255], bead: [225, 245, 255],
-            up: [110, 255, 205], down: [255, 120, 150], accent: [255, 222, 150], hot: [255, 120, 150], ink: [236, 246, 255], sub: [140, 200, 255] },
+            up: [255, 120, 150], down: [110, 255, 205], accent: [255, 222, 150], hot: [255, 120, 150], ink: [236, 246, 255], sub: [140, 200, 255] },
   jade:   { glow: [10, 40, 38],  swarm1: [80, 230, 170],  swarm2: [255, 200, 90],  swarm3: [235, 255, 220], thread: [80, 230, 170],  bead: [255, 200, 90],
-            up: [90, 240, 170],  down: [255, 105, 90],  accent: [255, 200, 90],  hot: [255, 105, 90],  ink: [240, 255, 245], sub: [150, 230, 190] },
+            up: [255, 105, 90],  down: [90, 240, 170],  accent: [255, 200, 90],  hot: [255, 105, 90],  ink: [240, 255, 245], sub: [150, 230, 190] },
   violet: { glow: [40, 20, 66],  swarm1: [255, 80, 200],  swarm2: [150, 110, 255], swarm3: [255, 230, 170], thread: [200, 120, 255], bead: [255, 120, 220],
-            up: [100, 200, 255], down: [255, 80, 160],  accent: [255, 230, 170], hot: [255, 80, 160],  ink: [250, 240, 255], sub: [210, 170, 255] },
+            up: [255, 80, 160],  down: [100, 200, 255],  accent: [255, 230, 170], hot: [255, 80, 160],  ink: [250, 240, 255], sub: [210, 170, 255] },
 };
 const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
 const mixc = (a, b, k) => a.map((v, i) => Math.round(lerp(v, b[i], k)));
@@ -75,7 +75,8 @@ return {
   init(ctx) {
     const { W, H, u, box, data: d } = ctx, P = palette(ctx.theme.palette), R = rng(+d.seed || 20261010);
     const gauss = () => { let a = 0; while (!a) a = R(); return Math.sqrt(-2 * Math.log(a)) * Math.cos(2 * Math.PI * R()); };
-    if (d.upDown === 'cn') [P.up, P.down] = [P.down, P.up];
+    if (d.upDown != null && d.upDown !== 'cn' && d.upDown !== 'us') throw new Error(`t4_dark_glow：upDown 只能是 'cn'（红涨，默认）或 'us'（青涨），收到 ${JSON.stringify(d.upDown)}`);
+    if (d.upDown === 'us') [P.up, P.down] = [P.down, P.up];   // 预设按 A 股红涨写（和 t3 一致）；'us' 换回原片的青涨
     const LY = ctx.portrait ? { x0: .1, x1: .9, band: .215, title: .13, en: .152, c0: .40, c1: .54, cl: [.27, .36], focus: .35 }
                             : { x0: .198, x1: .802, band: .255, title: .145, en: .178, c0: .55, c1: .74, cl: [.208, .56], focus: .445 };
     const fs = ctx.portrait ? 1.25 : 1;   // 竖屏在手机上看：英文小字放大两成半
